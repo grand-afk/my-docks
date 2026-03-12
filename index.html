@@ -16,7 +16,7 @@
 body { background:var(--dark); color:var(--text); font-family:'DM Mono',monospace; min-height:100vh; padding-bottom:60px; }
 
 header { background:var(--red); padding:12px 12px 12px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; gap:8px; }
-header h1 { font-family:'Syne',sans-serif; font-weight:800; font-size:clamp(1.2rem,4.5vw,2rem); color:#fff; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+header h1 { font-family:'Syne',sans-serif; font-weight:800; font-size:clamp(1rem,4vw,2rem); color:#fff; white-space:nowrap; flex-shrink:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
 .header-btns { display:flex; gap:6px; flex-shrink:0; }
 .hbtn { background:rgba(255,255,255,0.18); border:1.5px solid rgba(255,255,255,0.4); color:#fff; font-family:'DM Mono',monospace; font-size:clamp(0.78rem,2.5vw,1rem); padding:8px 10px; border-radius:8px; cursor:pointer; transition:background 0.15s; white-space:nowrap; }
 .hbtn:hover { background:rgba(255,255,255,0.32); }
@@ -104,7 +104,7 @@ footer { text-align:center; font-size:0.62rem; color:#2a2a2a; padding:12px 16px 
 <body>
 
 <header>
-  <h1>🚲 My Docks</h1>
+  <h1>My Docks</h1>
   <div class="header-btns">
     <button class="hbtn" id="search-toggle-btn" onclick="toggleSearch()">🔍 Search</button>
     <button class="hbtn" id="edit-btn" onclick="toggleEdit()">✏️ Edit</button>
@@ -227,7 +227,7 @@ function cardHtml(station) {
     ' ondrop="onDrop(event,' + station.id + ')"' +
     ' ondragend="onDragEnd(event)">' +
     '<button class="remove-btn" onclick="removeStation(' + station.id + ')">✕</button>' +
-    '<div class="drag-handle" onpointerdown="startTouchDrag(event,' + station.id + ')">⠿</div>' +
+    '<div class="drag-handle" ontouchstart="startTouchDrag(event,' + station.id + ')">⠿</div>' +
     '<div class="card-header">' +
       '<div class="station-name">' + station.label + '</div>' +
       '<div class="station-area">' + station.area + '</div>' +
@@ -296,7 +296,7 @@ function removeStation(id) {
   refreshPinButtons();
 }
 
-// Drag (mouse)
+// Drag — mouse (desktop)
 var dragId = null;
 function onDragStart(e, id) {
   if (!editMode) { e.preventDefault(); return; }
@@ -316,35 +316,56 @@ function onDragEnd() {
   document.querySelectorAll(".card").forEach(function(c){ c.classList.remove("dragging","drag-over"); });
 }
 
-// Drag (touch)
-var touchDragId = null, touchTarget = null;
+// Drag — touch (iOS / Android)
+var touchDragId = null, touchClone = null, touchOffX = 0, touchOffY = 0;
+
 function startTouchDrag(e, id) {
   if (!editMode) return;
   e.preventDefault();
   touchDragId = id;
-  document.getElementById("card-" + id).style.opacity = "0.4";
-  document.addEventListener("pointermove", onPointerMove, { passive: true });
-  document.addEventListener("pointerup", onPointerUp);
+  var card = document.getElementById("card-" + id);
+  var rect = card.getBoundingClientRect();
+  var touch = e.touches[0];
+  touchOffX = touch.clientX - rect.left;
+  touchOffY = touch.clientY - rect.top;
+  touchClone = card.cloneNode(true);
+  touchClone.style.cssText = "position:fixed;z-index:999;width:" + rect.width + "px;opacity:0.85;pointer-events:none;border:2px solid #f59e0b;border-radius:14px;left:" + rect.left + "px;top:" + rect.top + "px;transition:none;animation:none;transform:scale(1.03);box-shadow:0 8px 32px rgba(0,0,0,0.6);";
+  document.body.appendChild(touchClone);
+  card.style.opacity = "0.3";
+  document.addEventListener("touchmove", onTouchMove, { passive: false });
+  document.addEventListener("touchend", onTouchEnd);
 }
-function onPointerMove(e) {
+
+function onTouchMove(e) {
   if (touchDragId === null) return;
-  var el = document.elementFromPoint(e.clientX, e.clientY);
-  var card = el ? el.closest(".card") : null;
+  e.preventDefault();
+  var touch = e.touches[0];
+  touchClone.style.left = (touch.clientX - touchOffX) + "px";
+  touchClone.style.top  = (touch.clientY - touchOffY) + "px";
+  touchClone.style.display = "none";
+  var el = document.elementFromPoint(touch.clientX, touch.clientY);
+  touchClone.style.display = "";
+  var overCard = el ? el.closest(".card") : null;
   document.querySelectorAll(".card").forEach(function(c){ c.classList.remove("drag-over"); });
-  if (card) {
-    var tid = parseInt(card.id.replace("card-",""), 10);
-    touchTarget = (tid !== touchDragId) ? tid : null;
-    if (touchTarget) card.classList.add("drag-over");
-  } else { touchTarget = null; }
+  if (overCard && overCard.id !== "card-" + touchDragId) overCard.classList.add("drag-over");
 }
-function onPointerUp() {
-  document.removeEventListener("pointermove", onPointerMove);
-  document.removeEventListener("pointerup", onPointerUp);
+
+function onTouchEnd(e) {
+  document.removeEventListener("touchmove", onTouchMove);
+  document.removeEventListener("touchend", onTouchEnd);
+  var touch = e.changedTouches[0];
+  if (touchClone) { touchClone.remove(); touchClone = null; }
+  var srcCard = document.getElementById("card-" + touchDragId);
+  if (srcCard) srcCard.style.opacity = "";
   document.querySelectorAll(".card").forEach(function(c){ c.classList.remove("drag-over"); });
-  var card = document.getElementById("card-" + touchDragId);
-  if (card) card.style.opacity = "";
-  if (touchTarget !== null && touchTarget !== touchDragId) reorder(touchDragId, touchTarget);
-  touchDragId = null; touchTarget = null;
+  touchClone = null;
+  var el = document.elementFromPoint(touch.clientX, touch.clientY);
+  var overCard = el ? el.closest(".card") : null;
+  if (overCard && overCard.id !== "card-" + touchDragId) {
+    var targetId = parseInt(overCard.id.replace("card-",""), 10);
+    reorder(touchDragId, targetId);
+  }
+  touchDragId = null;
 }
 
 function reorder(fromId, toId) {
