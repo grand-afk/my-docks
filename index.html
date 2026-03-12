@@ -15,10 +15,10 @@
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 body { background:var(--dark); color:var(--text); font-family:'DM Mono',monospace; min-height:100vh; padding-bottom:60px; }
 
-header { background:var(--red); padding:18px 16px 16px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; gap:10px; }
-header h1 { font-family:'Syne',sans-serif; font-weight:800; font-size:clamp(1.5rem,5vw,2rem); color:#fff; white-space:nowrap; }
-.header-btns { display:flex; gap:8px; flex-shrink:0; }
-.hbtn { background:rgba(255,255,255,0.18); border:1.5px solid rgba(255,255,255,0.4); color:#fff; font-family:'DM Mono',monospace; font-size:clamp(0.85rem,2.8vw,1rem); padding:9px 14px; border-radius:8px; cursor:pointer; transition:background 0.15s; white-space:nowrap; }
+header { background:var(--red); padding:12px 12px 12px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; gap:8px; }
+header h1 { font-family:'Syne',sans-serif; font-weight:800; font-size:clamp(1.2rem,4.5vw,2rem); color:#fff; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.header-btns { display:flex; gap:6px; flex-shrink:0; }
+.hbtn { background:rgba(255,255,255,0.18); border:1.5px solid rgba(255,255,255,0.4); color:#fff; font-family:'DM Mono',monospace; font-size:clamp(0.78rem,2.5vw,1rem); padding:8px 10px; border-radius:8px; cursor:pointer; transition:background 0.15s; white-space:nowrap; }
 .hbtn:hover { background:rgba(255,255,255,0.32); }
 .hbtn:disabled { opacity:0.45; cursor:not-allowed; }
 .hbtn.active { background:#fff; color:var(--red); font-weight:500; }
@@ -174,7 +174,11 @@ function addFav(station) { var favs = getFavourites(); if (!isFav(station.id)) {
 function removeFav(id) { saveFavourites(getFavourites().filter(function(s){ return s.id !== id; })); }
 
 // Helpers
-function cycleUrl(lat, lng) { return "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lng + "&travelmode=bicycling"; }
+function cycleUrl(lat, lng) {
+  var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (ios) return "maps://?daddr=" + lat + "," + lng + "&dirflg=c";
+  return "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lng + "&travelmode=bicycling";
+}
 
 function bikeClass(n) {
   if (n == null) return "";
