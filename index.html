@@ -108,6 +108,7 @@ footer { text-align:center; font-size:0.62rem; color:#2a2a2a; padding:12px 16px 
   <div class="header-btns">
     <button class="hbtn" id="search-toggle-btn" onclick="toggleSearch()">🔍 Search</button>
     <button class="hbtn" onclick="showSharePanel()">⇅ Sync</button>
+    <button class="hbtn" onclick="toggleHelp()">? Help</button>
     <button class="hbtn" id="edit-btn" onclick="toggleEdit()">✏️ Edit</button>
     <button class="hbtn" id="refresh-btn" onclick="loadAll()">↺</button>
   </div>
@@ -130,6 +131,53 @@ footer { text-align:center; font-size:0.62rem; color:#2a2a2a; padding:12px 16px 
     <button class="hbtn" onclick="hideSharePanel()">✕ Close</button>
   </div>
   <input type="file" id="import-file" accept=".json" style="display:none" onchange="importFromFile(event)">
+</div>
+
+<div id="help-panel" style="display:none;background:#111;border-bottom:2px solid #444;padding:16px 16px 20px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;color:#fff;">Help</div>
+    <button class="hbtn" onclick="toggleHelp()">✕ Close</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:18px;max-height:65vh;overflow-y:auto;">
+
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;color:#fff;font-size:1rem;margin-bottom:6px;">🔍 Finding &amp; saving stations</div>
+      <div style="color:#aaa;font-size:0.9rem;line-height:1.6;">Tap <b style="color:#fff">Search</b>, type a street or station name, and tap <b style="color:#fff">＋ Save</b> on any result to add it to your list.</div>
+    </div>
+
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;color:#fff;font-size:1rem;margin-bottom:6px;">✏️ Editing your list</div>
+      <div style="color:#aaa;font-size:0.9rem;line-height:1.6;">Tap <b style="color:#fff">Edit</b> to enter edit mode. Tap <b style="color:#ef4444">✕</b> to remove a station. Press and hold the <b style="color:#fff">⠿</b> handle and drag to reorder. Tap <b style="color:#fff">✓ Done</b> when finished.</div>
+    </div>
+
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;color:#fff;font-size:1rem;margin-bottom:6px;">🚲 Cycling directions</div>
+      <div style="color:#aaa;font-size:0.9rem;line-height:1.6;">Tap <b style="color:#22c55e">Cycle Here</b> on any card to open cycling directions to that station — Apple Maps on iPhone, Google Maps elsewhere.</div>
+    </div>
+
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;color:#fff;font-size:1rem;margin-bottom:6px;">⇅ Syncing between devices</div>
+      <div style="color:#aaa;font-size:0.9rem;line-height:1.6;">Your stations are saved in this browser only. To copy them to another device:<br><br>
+        1. Tap <b style="color:#fff">⇅ Sync</b> → <b style="color:#fff">⬇ Download config</b> or <b style="color:#fff">⎘ Copy to clipboard</b><br>
+        2. On the other device, tap <b style="color:#fff">⇅ Sync</b> → <b style="color:#fff">⬆ Import config</b> or paste the JSON
+      </div>
+    </div>
+
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;color:#fff;font-size:1rem;margin-bottom:6px;">📱 Add to iPhone home screen</div>
+      <div style="color:#aaa;font-size:0.9rem;line-height:1.6;">In Safari, tap the <b style="color:#fff">Share</b> button (box with arrow) → <b style="color:#fff">Add to Home Screen</b> → <b style="color:#fff">Add</b>. It will appear as an app icon.</div>
+    </div>
+
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;color:#fff;font-size:1rem;margin-bottom:6px;">🔴 Colour guide</div>
+      <div style="color:#aaa;font-size:0.9rem;line-height:1.6;">
+        Bikes: <span style="color:#22c55e">■</span> plenty &nbsp; <span style="color:#f59e0b">■</span> 3 or fewer &nbsp; <span style="color:#ef4444">■</span> none<br>
+        Docks: <span style="color:#60a5fa">■</span> spaces free &nbsp; <span style="color:#ef4444">■</span> full<br>
+        E-bikes: <span style="color:#a78bfa">■</span> purple
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <div id="search-panel">
@@ -479,6 +527,18 @@ function refreshPinButtons() {
     btn.textContent = fav ? "✓ Saved" : "＋ Save";
     btn.disabled = fav;
   });
+}
+
+// Help
+function toggleHelp() {
+  var p = document.getElementById("help-panel");
+  var opening = p.style.display === "none";
+  p.style.display = opening ? "block" : "none";
+  // close other panels
+  if (opening) {
+    document.getElementById("share-panel").style.display = "none";
+    if (searchOpen) toggleSearch();
+  }
 }
 
 // Share / Sync
