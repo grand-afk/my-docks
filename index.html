@@ -107,12 +107,30 @@ footer { text-align:center; font-size:0.62rem; color:#2a2a2a; padding:12px 16px 
   <h1>My Docks</h1>
   <div class="header-btns">
     <button class="hbtn" id="search-toggle-btn" onclick="toggleSearch()">🔍 Search</button>
+    <button class="hbtn" onclick="showSharePanel()">⇅ Sync</button>
     <button class="hbtn" id="edit-btn" onclick="toggleEdit()">✏️ Edit</button>
     <button class="hbtn" id="refresh-btn" onclick="loadAll()">↺</button>
   </div>
 </header>
 
 <div id="edit-banner">✏️ Tap ✕ to remove · Drag ⠿ to reorder · Use Search to add</div>
+
+<div id="share-panel" style="display:none;background:#111;border-bottom:2px solid #444;padding:16px;">
+  <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;color:#fff;margin-bottom:12px;">⇅ Sync Stations</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+    <button class="hbtn" style="background:#22c55e;border-color:#22c55e;color:#000;font-weight:600;" onclick="exportConfig()">⬇ Download config</button>
+    <button class="hbtn" style="background:#60a5fa;border-color:#60a5fa;color:#000;font-weight:600;" onclick="copyConfig()">⎘ Copy to clipboard</button>
+    <button class="hbtn" style="background:#f59e0b;border-color:#f59e0b;color:#000;font-weight:600;" onclick="document.getElementById('import-file').click()">⬆ Import config</button>
+  </div>
+  <div id="share-msg" style="font-size:0.9rem;color:#aaa;margin-bottom:10px;min-height:20px;"></div>
+  <textarea id="config-paste" rows="4" placeholder="…or paste config JSON here and tap Import"
+    style="width:100%;background:#1a1a1a;border:1.5px solid #333;color:#ccc;font-family:'DM Mono',monospace;font-size:0.8rem;padding:10px;border-radius:8px;resize:vertical;"></textarea>
+  <div style="display:flex;gap:8px;margin-top:8px;">
+    <button class="hbtn" style="flex:1;" onclick="importFromPaste()">Import pasted config</button>
+    <button class="hbtn" onclick="hideSharePanel()">✕ Close</button>
+  </div>
+  <input type="file" id="import-file" accept=".json" style="display:none" onchange="importFromFile(event)">
+</div>
 
 <div id="search-panel">
   <div class="search-wrap">
@@ -461,6 +479,65 @@ function refreshPinButtons() {
     btn.textContent = fav ? "✓ Saved" : "＋ Save";
     btn.disabled = fav;
   });
+}
+
+// Share / Sync
+function showSharePanel() {
+  var p = document.getElementById("share-panel");
+  var open = p.style.display !== "none";
+  p.style.display = open ? "none" : "block";
+  if (!open) document.getElementById("share-msg").textContent = "";
+}
+function hideSharePanel() { document.getElementById("share-panel").style.display = "none"; }
+
+function configJson() {
+  return JSON.stringify({ stations: getFavourites() }, null, 2);
+}
+
+function exportConfig() {
+  var blob = new Blob([configJson()], { type: "application/json" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url; a.download = "my-docks-config.json"; a.click();
+  URL.revokeObjectURL(url);
+  document.getElementById("share-msg").textContent = "✓ Downloaded my-docks-config.json";
+}
+
+function copyConfig() {
+  navigator.clipboard.writeText(configJson()).then(function() {
+    document.getElementById("share-msg").textContent = "✓ Copied to clipboard — paste into another device";
+  }).catch(function() {
+    document.getElementById("config-paste").value = configJson();
+    document.getElementById("share-msg").textContent = "Clipboard blocked — copy the text from the box below";
+  });
+}
+
+function importConfig(json) {
+  try {
+    var data = JSON.parse(json);
+    if (!data.stations || !Array.isArray(data.stations)) throw new Error("Invalid format");
+    saveFavourites(data.stations);
+    loadAll();
+    document.getElementById("share-msg").textContent = "✓ Imported " + data.stations.length + " stations";
+    document.getElementById("config-paste").value = "";
+  } catch(e) {
+    document.getElementById("share-msg").textContent = "✗ Invalid config file — make sure it's a my-docks-config.json";
+  }
+}
+
+function importFromPaste() {
+  var txt = document.getElementById("config-paste").value.trim();
+  if (!txt) { document.getElementById("share-msg").textContent = "Paste your config JSON in the box first"; return; }
+  importConfig(txt);
+}
+
+function importFromFile(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) { importConfig(ev.target.result); };
+  reader.readAsText(file);
+  e.target.value = "";
 }
 
 loadAll();
