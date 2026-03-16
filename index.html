@@ -107,6 +107,7 @@ footer { text-align:center; font-size:0.62rem; color:#2a2a2a; padding:12px 16px 
   <h1>My Docks</h1>
   <div class="header-btns">
     <button class="hbtn" id="search-toggle-btn" onclick="toggleSearch()">🔍 Search</button>
+    <button class="hbtn" onclick="doNearby()" id="nearby-btn">📍 Nearby</button>
     <button class="hbtn" onclick="showSharePanel()">⇅ Sync</button>
     <button class="hbtn" onclick="toggleHelp()">? Help</button>
     <button class="hbtn" id="edit-btn" onclick="toggleEdit()">✏️ Edit</button>
@@ -142,7 +143,7 @@ footer { text-align:center; font-size:0.62rem; color:#2a2a2a; padding:12px 16px 
 
     <div>
       <div style="font-family:'Syne',sans-serif;font-weight:700;color:#fff;font-size:1rem;margin-bottom:6px;">🔍 Finding &amp; saving stations</div>
-      <div style="color:#aaa;font-size:0.9rem;line-height:1.6;">Tap <b style="color:#fff">Search</b>, type a street or station name, and tap <b style="color:#fff">＋ Save</b> on any result to add it to your list.</div>
+      <div style="color:#aaa;font-size:0.9rem;line-height:1.6;">Tap <b style="color:#fff">📍 Nearby</b> to find the 10 closest stations to your current location. Or tap <b style="color:#fff">🔍 Search</b>, type a street or station name, and tap <b style="color:#fff">＋ Save</b> on any result.</div>
     </div>
 
     <div>
@@ -191,11 +192,32 @@ footer { text-align:center; font-size:0.62rem; color:#2a2a2a; padding:12px 16px 
   <div id="search-results"></div>
 </div>
 
+<div id="nearby-panel" style="display:none;background:#111;border-bottom:2px solid var(--green);padding:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;color:#fff;">📍 Nearby Stations</div>
+    <button class="hbtn" onclick="closeNearby()">✕ Close</button>
+  </div>
+  <div id="nearby-msg" style="font-size:0.9rem;color:#aaa;margin-bottom:8px;min-height:20px;"></div>
+  <div id="nearby-results" style="display:flex;flex-direction:column;gap:8px;max-height:55vh;overflow-y:auto;"></div>
+</div>
+
 <div id="status-bar"></div>
 
 <div id="empty-state">
-  <p>No favourite stations yet.</p>
-  <small>Tap 🔍 Search to find and save stations.</small>
+  <div style="max-width:420px;margin:0 auto;padding:10px;">
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;color:#fff;margin-bottom:8px;">Welcome to My Docks 🚲</div>
+    <p style="color:#888;font-size:0.95rem;margin-bottom:24px;line-height:1.6;">You haven't saved any stations yet. Find your nearest ones to get started.</p>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button onclick="doNearby()" style="background:var(--green);border:none;color:#000;font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;padding:16px 20px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><path d="M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/></svg>
+        Find Nearby Stations
+      </button>
+      <button onclick="if(!searchOpen)toggleSearch();document.getElementById('search-input').focus();" style="background:var(--card2);border:1.5px solid var(--border2);color:#ccc;font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;padding:16px 20px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        Search by Name
+      </button>
+    </div>
+  </div>
 </div>
 
 <div class="grid" id="grid"></div>
@@ -214,15 +236,7 @@ footer { text-align:center; font-size:0.62rem; color:#2a2a2a; padding:12px 16px 
 <footer>TfL Open Data · Favourites saved in your browser</footer>
 
 <script>
-var DEFAULTS = [
-  { id: 175, label: "Appold Street",         area: "250 Bishopsgate",          lat: 51.52174, lng: -0.08112 },
-  { id: 122, label: "Norton Folgate",        area: "Bishopsgate / Shoreditch", lat: 51.52111, lng: -0.07887 },
-  { id:  84, label: "Breams Buildings",      area: "Chancery Lane",            lat: 51.51594, lng: -0.11178 },
-  { id:  54, label: "Golden Lane",           area: "Silk Street / Barbican",   lat: 51.52175, lng: -0.09448 },
-  { id:  78, label: "Sadlers Sports Centre", area: "Goswell Road / Finsbury",  lat: 51.52487, lng: -0.09949 },
-  { id:  75, label: "Torrens Street",        area: "Angel / Islington",        lat: 51.53220, lng: -0.10548 },
-  { id:  93, label: "Cloudesley Road",       area: "Angel / Upper Street",     lat: 51.53441, lng: -0.10903 }
-];
+var DEFAULTS = [];
 
 var API_SEARCH = "https://api.tfl.gov.uk/BikePoint/Search?query=";
 var API_SINGLE = "https://api.tfl.gov.uk/BikePoint/BikePoints_";
@@ -232,12 +246,115 @@ var searchOpen = false;
 // Favourites
 function getFavourites() {
   try { var s = localStorage.getItem("santander_favs"); if (s) return JSON.parse(s); } catch(e) {}
-  return JSON.parse(JSON.stringify(DEFAULTS));
+  return [];
 }
 function saveFavourites(list) { try { localStorage.setItem("santander_favs", JSON.stringify(list)); } catch(e) {} }
 function isFav(id) { return getFavourites().some(function(s){ return s.id === id; }); }
 function addFav(station) { var favs = getFavourites(); if (!isFav(station.id)) { favs.push(station); saveFavourites(favs); } }
 function removeFav(id) { saveFavourites(getFavourites().filter(function(s){ return s.id !== id; })); }
+
+// Nearby
+function doNearby() {
+  var panel = document.getElementById("nearby-panel");
+  var msg   = document.getElementById("nearby-msg");
+  var res   = document.getElementById("nearby-results");
+  var btn   = document.getElementById("nearby-btn");
+
+  // Close search if open
+  if (searchOpen) toggleSearch();
+
+  panel.style.display = "block";
+  msg.textContent = "Getting your location…";
+  res.innerHTML = "";
+  if (btn) { btn.disabled = true; btn.textContent = "…"; }
+
+  if (!navigator.geolocation) {
+    msg.textContent = "Geolocation is not supported by your browser.";
+    if (btn) { btn.disabled = false; btn.textContent = "📍 Nearby"; }
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      var lat = pos.coords.latitude;
+      var lng = pos.coords.longitude;
+      msg.textContent = "Searching near you…";
+
+      // TfL BikePoint/Search doesn't support geo, so fetch all and sort by distance
+      fetch("https://api.tfl.gov.uk/BikePoint")
+        .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function(data) {
+          // Calculate distances and sort
+          var withDist = data.map(function(s) {
+            var dlat = s.lat - lat;
+            var dlng = s.lon - lng;
+            var dist = Math.sqrt(dlat*dlat + dlng*dlng);
+            return { s: s, dist: dist };
+          });
+          withDist.sort(function(a,b){ return a.dist - b.dist; });
+          var nearest = withDist.slice(0, 10);
+
+          msg.textContent = "10 nearest stations:";
+
+          // Fetch live data for each
+          Promise.all(nearest.map(function(item) {
+            var numId = parseInt(item.s.id.replace("BikePoints_",""), 10);
+            return fetchStation(numId);
+          })).then(function(liveResults) {
+            res.innerHTML = nearest.map(function(item, i) {
+              var s = item.s;
+              var numId = parseInt(s.id.replace("BikePoints_",""), 10);
+              var parts = (s.commonName || s.id).split(",");
+              var label = parts[0].trim();
+              var area  = parts.slice(1).join(",").trim();
+              var already = isFav(numId);
+              var d = liveResults[i];
+              var bikes  = d ? d.bikes  : null;
+              var ebikes = d ? d.ebikes : null;
+              var docks  = d ? d.docks  : null;
+              var total  = d ? d.total  : null;
+              var distM  = Math.round(item.dist * 111320);
+              var distStr = distM < 1000 ? distM + "m" : (distM/1000).toFixed(1) + "km";
+
+              window._searchResults = window._searchResults || {};
+              window._searchResults[numId] = { id: numId, label: label, area: area, lat: s.lat, lng: s.lon };
+
+              return '<div class="result-card" id="result-' + numId + '">' +
+                '<div class="result-header"><div>' +
+                  '<div class="result-name">' + label + '</div>' +
+                  '<div class="result-area">' + (area ? area + ' · ' : '') + '<span style="color:#60a5fa">' + distStr + ' away</span></div>' +
+                '</div>' +
+                '<button class="pin-btn" id="pin-' + numId + '" onclick="pinStation(' + numId + ')" ' + (already ? 'disabled' : '') + '>' +
+                  (already ? '✓ Saved' : '＋ Save') +
+                '</button></div>' +
+                '<div class="result-stats">' +
+                  '<div class="result-stat"><span class="result-stat-val ' + bikeClass(bikes) + '">' + (bikes != null ? bikes : "?") + '</span><div class="result-stat-lbl">🚲 Bikes</div></div>' +
+                  '<div class="result-stat"><span class="result-stat-val ebikes">' + (ebikes != null ? ebikes : "?") + '</span><div class="result-stat-lbl">⚡ E-Bikes</div></div>' +
+                  '<div class="result-stat"><span class="result-stat-val ' + dockClass(docks) + '">' + (docks != null ? docks : "?") + '</span><div class="result-stat-lbl">🅿 Free' + (total ? " / " + total : "") + '</div></div>' +
+                '</div></div>';
+            }).join("");
+            if (btn) { btn.disabled = false; btn.textContent = "📍 Nearby"; }
+          });
+        })
+        .catch(function() {
+          msg.textContent = "Could not load station data — check connection.";
+          if (btn) { btn.disabled = false; btn.textContent = "📍 Nearby"; }
+        });
+    },
+    function(err) {
+      var msgs = { 1: "Location access denied — please allow location in your browser settings.", 2: "Could not determine your location.", 3: "Location request timed out." };
+      msg.textContent = msgs[err.code] || "Location unavailable.";
+      if (btn) { btn.disabled = false; btn.textContent = "📍 Nearby"; }
+    },
+    { timeout: 10000, maximumAge: 60000 }
+  );
+}
+
+function closeNearby() {
+  document.getElementById("nearby-panel").style.display = "none";
+  var btn = document.getElementById("nearby-btn");
+  if (btn) { btn.disabled = false; btn.textContent = "📍 Nearby"; }
+}
 
 // Helpers
 function cycleUrl(lat, lng) {
@@ -527,6 +644,109 @@ function refreshPinButtons() {
     btn.textContent = fav ? "✓ Saved" : "＋ Save";
     btn.disabled = fav;
   });
+}
+
+// Nearby
+function doNearby() {
+  var panel = document.getElementById("nearby-panel");
+  var msg   = document.getElementById("nearby-msg");
+  var res   = document.getElementById("nearby-results");
+  var btn   = document.getElementById("nearby-btn");
+
+  // Close search if open
+  if (searchOpen) toggleSearch();
+
+  panel.style.display = "block";
+  msg.textContent = "Getting your location…";
+  res.innerHTML = "";
+  if (btn) { btn.disabled = true; btn.textContent = "…"; }
+
+  if (!navigator.geolocation) {
+    msg.textContent = "Geolocation is not supported by your browser.";
+    if (btn) { btn.disabled = false; btn.textContent = "📍 Nearby"; }
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      var lat = pos.coords.latitude;
+      var lng = pos.coords.longitude;
+      msg.textContent = "Searching near you…";
+
+      // TfL BikePoint/Search doesn't support geo, so fetch all and sort by distance
+      fetch("https://api.tfl.gov.uk/BikePoint")
+        .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function(data) {
+          // Calculate distances and sort
+          var withDist = data.map(function(s) {
+            var dlat = s.lat - lat;
+            var dlng = s.lon - lng;
+            var dist = Math.sqrt(dlat*dlat + dlng*dlng);
+            return { s: s, dist: dist };
+          });
+          withDist.sort(function(a,b){ return a.dist - b.dist; });
+          var nearest = withDist.slice(0, 10);
+
+          msg.textContent = "10 nearest stations:";
+
+          // Fetch live data for each
+          Promise.all(nearest.map(function(item) {
+            var numId = parseInt(item.s.id.replace("BikePoints_",""), 10);
+            return fetchStation(numId);
+          })).then(function(liveResults) {
+            res.innerHTML = nearest.map(function(item, i) {
+              var s = item.s;
+              var numId = parseInt(s.id.replace("BikePoints_",""), 10);
+              var parts = (s.commonName || s.id).split(",");
+              var label = parts[0].trim();
+              var area  = parts.slice(1).join(",").trim();
+              var already = isFav(numId);
+              var d = liveResults[i];
+              var bikes  = d ? d.bikes  : null;
+              var ebikes = d ? d.ebikes : null;
+              var docks  = d ? d.docks  : null;
+              var total  = d ? d.total  : null;
+              var distM  = Math.round(item.dist * 111320);
+              var distStr = distM < 1000 ? distM + "m" : (distM/1000).toFixed(1) + "km";
+
+              window._searchResults = window._searchResults || {};
+              window._searchResults[numId] = { id: numId, label: label, area: area, lat: s.lat, lng: s.lon };
+
+              return '<div class="result-card" id="result-' + numId + '">' +
+                '<div class="result-header"><div>' +
+                  '<div class="result-name">' + label + '</div>' +
+                  '<div class="result-area">' + (area ? area + ' · ' : '') + '<span style="color:#60a5fa">' + distStr + ' away</span></div>' +
+                '</div>' +
+                '<button class="pin-btn" id="pin-' + numId + '" onclick="pinStation(' + numId + ')" ' + (already ? 'disabled' : '') + '>' +
+                  (already ? '✓ Saved' : '＋ Save') +
+                '</button></div>' +
+                '<div class="result-stats">' +
+                  '<div class="result-stat"><span class="result-stat-val ' + bikeClass(bikes) + '">' + (bikes != null ? bikes : "?") + '</span><div class="result-stat-lbl">🚲 Bikes</div></div>' +
+                  '<div class="result-stat"><span class="result-stat-val ebikes">' + (ebikes != null ? ebikes : "?") + '</span><div class="result-stat-lbl">⚡ E-Bikes</div></div>' +
+                  '<div class="result-stat"><span class="result-stat-val ' + dockClass(docks) + '">' + (docks != null ? docks : "?") + '</span><div class="result-stat-lbl">🅿 Free' + (total ? " / " + total : "") + '</div></div>' +
+                '</div></div>';
+            }).join("");
+            if (btn) { btn.disabled = false; btn.textContent = "📍 Nearby"; }
+          });
+        })
+        .catch(function() {
+          msg.textContent = "Could not load station data — check connection.";
+          if (btn) { btn.disabled = false; btn.textContent = "📍 Nearby"; }
+        });
+    },
+    function(err) {
+      var msgs = { 1: "Location access denied — please allow location in your browser settings.", 2: "Could not determine your location.", 3: "Location request timed out." };
+      msg.textContent = msgs[err.code] || "Location unavailable.";
+      if (btn) { btn.disabled = false; btn.textContent = "📍 Nearby"; }
+    },
+    { timeout: 10000, maximumAge: 60000 }
+  );
+}
+
+function closeNearby() {
+  document.getElementById("nearby-panel").style.display = "none";
+  var btn = document.getElementById("nearby-btn");
+  if (btn) { btn.disabled = false; btn.textContent = "📍 Nearby"; }
 }
 
 // Help
